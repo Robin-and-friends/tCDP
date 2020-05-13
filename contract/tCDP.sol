@@ -241,7 +241,7 @@ contract tCDP is ERC20Mintable {
 
         _burn(msg.sender, amount);
 
-        Dai.transferFrom(msg.sender, address(this), amount);
+        Dai.transferFrom(msg.sender, address(this), tokenToRepay);
         cDai.repayBorrow(tokenToRepay);
         cEth.redeemUnderlying(tokenToDraw);
         (bool success, ) = msg.sender.call.value(tokenToDraw)("");
