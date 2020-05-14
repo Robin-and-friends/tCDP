@@ -172,6 +172,8 @@ interface Comptroller {
         external
         view
         returns (uint256, uint256, uint256);
+
+    function oracle() external view returns(address);
 }
 
 
@@ -228,9 +230,9 @@ contract tCDP is ERC20Mintable {
         uint256 tokenToMint = _totalSupply.mul(amount).div(collateral());
         uint256 tokenToBorrow = debt().mul(amount).div(collateral());
 
-        cEth.mint.value(amount)();
-
         _mint(msg.sender, tokenToMint);
+
+        cEth.mint.value(amount)();
         cDai.borrow(tokenToBorrow);
         Dai.transfer(msg.sender, tokenToBorrow);
     }
@@ -249,4 +251,58 @@ contract tCDP is ERC20Mintable {
     }
 
     function() external payable{}
+}
+
+contract Exchange {
+    function trade(
+        address src,
+        uint srcAmount,
+        address dest,
+        address destAddress,
+        uint maxDestAmount,
+        uint minConversionRate,
+        address walletId )public payable returns(uint);
+}
+
+contract rebalanceCDP is tCDP {
+
+    Exchange kyberNetwork = Exchange(0x818E6FECD516Ecc3849DAf6845e3EC868087B755);
+    address etherAddr = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address ref = 0xD0533664013a82c31584B7FFDB215139f38Ad77A;
+
+    uint256 public upperBound = 4.5e17; //45%
+    uint256 public lowerBound = 3.5e17; //35%
+    uint256 public bite = 2.5e16; //2.5%
+
+    constructor() public {
+        Dai.approve(address(kyberNetwork), uint256(-1));
+    }
+
+    function debtRatio() public returns(uint256) {
+        address oracle = comptroller.oracle();
+        PriceOracle priceOracle = PriceOracle(oracle);
+        uint256 price = priceOracle.getUnderlyingPrice(address(cDai));
+        uint256 ratio = debt().mul(price).div(collateral());
+        return ratio;
+    }
+
+    function deleverage() public {
+        require(_totalSupply >= dust, "not initiated");
+        require(debtRatio() > upperBound, "debt ratio is good");
+        uint256 amount = collateral().mul(bite).div(1e18);
+        cEth.redeemUnderlying(amount);
+        uint256 income = kyberNetwork.trade.value(amount)(etherAddr, amount, address(Dai), address(this), 1e28, 1, ref);
+        cDai.repayBorrow(income);
+    }
+
+    function leverage() public {
+        require(_totalSupply >= dust, "not initiated");
+        require(debtRatio() < lowerBound, "debt ratio is good");
+        uint256 amount = collateral().mul(bite).div(1e18);
+        cDai.borrow(amount);
+        uint256 income = kyberNetwork.trade(address(Dai), amount, etherAddr, address(this), 1e28, 1, ref);
+        cEth.mint.value(income)();
+    }
+
+
 }
