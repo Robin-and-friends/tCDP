@@ -3,7 +3,7 @@
  * @dev This file is used to print running environment info and 
  *      set account state to meet testing requirement.
  */
-const tCDP = artifacts.require('./tCDP.sol');
+const tCDP = artifacts.require('./tCDPAave.sol');
 const CTokenInterface = artifacts.require('./CErc20.sol');
 const CEth = artifacts.require('./CEth.sol');
 const ERC20 = artifacts.require('./ERC20.sol');
