@@ -196,6 +196,10 @@ interface ILendingPool {
 	function getReserves() external view;
 }
 
+interface ILendingPoolCore {
+	function getReserveATokenAddress(address _reserve) external view returns (address);
+}
+
 interface IAToken {
     function redirectInterestStream(address _to) external;
     function redirectInterestStreamOf(address _from, address _to) external;
@@ -232,7 +236,6 @@ contract tCDPAave is ERC20Mintable {
 
     uint256 constant dust = 1e6;
     address constant AAVE_ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    IAToken constant aETH = IAToken(0x3a3A65aAb0dd2A17E3F1947bA16138cd37d08c04);
     ERC20 constant Dai = ERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F);
     uint16 constant REFERRAL = 0; // TODO: apply new referral code
 
@@ -262,7 +265,9 @@ contract tCDPAave is ERC20Mintable {
     }
 
     function collateral() public view returns(uint256) {
-        return aETH.balanceOf(address(this));
+        address lendingPoolCore = addressesProvider.getLendingPoolCore();
+        address aETH = ILendingPoolCore(lendingPoolCore).getReserveATokenAddress(AAVE_ETH);
+        return IAToken(aETH).balanceOf(address(this));
     }
 
     function debt() public view returns(uint256) {
@@ -303,6 +308,7 @@ contract tCDPAave is ERC20Mintable {
         lendingPool.repay(address(Dai), tokenToRepay, address(this));
 
         // redeem
+        IAToken aETH = IAToken(ILendingPoolCore(lendingPoolCoreAddress).getReserveATokenAddress(AAVE_ETH));
         aETH.redeem(tokenToDraw);
 
         // transfer
