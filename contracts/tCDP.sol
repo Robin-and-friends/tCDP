@@ -298,7 +298,7 @@ contract rebalanceCDP is tCDP {
     function leverage() public {
         require(_totalSupply >= dust, "not initiated");
         require(debtRatio() < lowerBound, "debt ratio is good");
-        uint256 amount = collateral().mul(bite).div(1e18);
+        uint256 amount = debt().mul(bite).div(1e18);
         cDai.borrow(amount);
         uint256 income = kyberNetwork.trade(address(Dai), amount, etherAddr, address(this), 1e28, 1, ref);
         cEth.mint.value(income)();
