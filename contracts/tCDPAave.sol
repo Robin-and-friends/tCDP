@@ -200,6 +200,13 @@ interface ILendingPoolCore {
 	function getReserveATokenAddress(address _reserve) external view returns (address);
 }
 
+interface IAavePriceOracleGetter {
+    function getAssetPrice(address _asset) external view returns (uint256);
+    function getAssetsPrices(address[] calldata _assets) external view returns(uint256[] memory);
+    function getSourceOfAsset(address _asset) external view returns(address);
+    function getFallbackOracle() external view returns(address);
+}
+
 interface IAToken {
     function redirectInterestStream(address _to) external;
     function redirectInterestStreamOf(address _from, address _to) external;
@@ -304,7 +311,7 @@ contract tCDPAave is ERC20Mintable {
         // repay
         ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
         address lendingPoolCoreAddress = addressesProvider.getLendingPoolCore();
-        Dai.approve(lendingPoolCoreAddress, tokenToRepay);
+        // Dai.approve(lendingPoolCoreAddress, tokenToRepay);
         lendingPool.repay(address(Dai), tokenToRepay, address(this));
 
         // redeem
@@ -319,3 +326,71 @@ contract tCDPAave is ERC20Mintable {
     function() external payable{}
 }
 
+contract Exchange {
+    function trade(
+        address src,
+        uint srcAmount,
+        address dest,
+        address destAddress,
+        uint maxDestAmount,
+        uint minConversionRate,
+        address walletId )public payable returns(uint);
+}
+
+contract rebalanceCDPAave is tCDPAave {
+
+    Exchange kyberNetwork = Exchange(0x818E6FECD516Ecc3849DAf6845e3EC868087B755);
+    // address etherAddr = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address ref = 0xD0533664013a82c31584B7FFDB215139f38Ad77A;
+
+    uint256 public upperBound = 0.45 * 1e18; //45%
+    uint256 public lowerBound = 0.35 * 1e18; //35%
+    uint256 public bite = 0.025 * 1e18; //2.5%
+
+    constructor(ILendingPoolAddressesProvider _provider) tCDPAave(_provider) public {
+        Dai.approve(address(kyberNetwork), uint256(-1));
+    }
+
+    function debtRatio() public returns(uint256) {
+        address oracleAddress = addressesProvider.getPriceOracle();
+        IAavePriceOracleGetter priceOracle = IAavePriceOracleGetter(oracleAddress);
+        uint256 price = priceOracle.getAssetPrice(address(Dai));
+        uint256 ratio = debt().mul(price).div(collateral());
+        return ratio;
+    }
+
+    function deleverage() public {
+        require(_totalSupply >= dust, "not initiated");
+        require(debtRatio() > upperBound, "debt ratio is good");
+        uint256 amount = collateral().mul(bite).div(1e18);
+
+        // redeem
+        address lendingPoolCoreAddress = addressesProvider.getLendingPoolCore();
+        IAToken aETH = IAToken(ILendingPoolCore(lendingPoolCoreAddress).getReserveATokenAddress(AAVE_ETH));
+        aETH.redeem(amount);
+
+        uint256 income = kyberNetwork.trade.value(amount)(AAVE_ETH, amount, address(Dai), address(this), 1e28, 1, ref);
+
+        // repay
+        ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
+        // Dai.approve(lendingPoolCoreAddress, income);
+        lendingPool.repay(address(Dai), income, address(this));
+    }
+
+    function leverage() public {
+        require(_totalSupply >= dust, "not initiated");
+        require(debtRatio() < lowerBound, "debt ratio is good");
+        uint256 amount = debt().mul(bite).div(1e18);
+
+        // borrow
+        ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
+        lendingPool.borrow(address(Dai), amount, 2, REFERRAL);
+
+        uint256 income = kyberNetwork.trade(address(Dai), amount, AAVE_ETH, address(this), 1e28, 1, ref);
+
+        // deposit
+        lendingPool.deposit.value(income)(AAVE_ETH, income, REFERRAL);
+    }
+
+
+}

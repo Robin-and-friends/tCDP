@@ -2,6 +2,8 @@
 
 // initialize
 let instance = await tCDP.deployed()
+let instance = await tCDPAave.deployed()
+let instance = await rebalanceCDPAave.deployed()
 let accounts = await web3.eth.getAccounts()
 
 let ceth_contract = await CTokenInterface.at("0x4Ddc2D193948926D02f9B1fE9e1daa0718270ED5")
@@ -20,11 +22,16 @@ let compOracle = await CompOracleInterface.at("0x1D8aEdc9E924730DD3f9641CDb4D1B9
 let underlyingPrice_dai1 = (await compOracle.getUnderlyingPrice(cdai_contract.address)).toString()
 
 // main action
-let res = await instance.initiate(web3.utils.toWei('1'), {from: accounts[0], value: web3.utils.toWei('1')})
+let res = await instance.initiate(web3.utils.toWei('150'), {from: accounts[0], value: web3.utils.toWei('1')})
 instance.collateral.call().then( num => console.log('collateral: ' + web3.utils.fromWei(num.toString())))
 instance.debt.call().then( num => console.log('debt: ' + web3.utils.fromWei(num.toString())))
 let res2 = await instance.mint({from: accounts[0], value: web3.utils.toWei('1')})
 let res3 = await instance.burn(web3.utils.toWei('1'), {from: accounts[0]})
+instance.debtRatio.call().then( num => console.log('debtRatio: ' + web3.utils.fromWei(num.toString())))
+let res4 = await instance.deleverage()
+instance.debtRatio.call().then( num => console.log('debtRatio: ' + web3.utils.fromWei(num.toString())))
+let res5 = await instance.leverage()
+instance.debtRatio.call().then( num => console.log('debtRatio: ' + web3.utils.fromWei(num.toString())))
 
 // transfer DAI
 dai_contract.transfer(instance.address, web3.utils.toWei("1"), {from: dai_account})
@@ -37,11 +44,11 @@ cdai_contract.balanceOf(ceth_account).then(num => console.log(num.toString()))
 cusdc_contract.balanceOf(ceth_account).then(num => console.log(num.toString()))
 cbat_contract.balanceOf(ceth_account).then(num => console.log(num.toString()))
 crep_contract.balanceOf(ceth_account).then(num => console.log(num.toString()))
-dai_contract.balanceOf(wallet_address).then(num => console.log(num.toString()))
+dai_contract.balanceOf(accounts[0]).then(num => console.log(num.toString()))
 
 // approve & check allowance
-dai_contract.approve(instance.address, web3.utils.toWei('1'), {from: accounts[0]})
-dai_contract.allowance(dai_account, instance.address).then(num => console.log(num.toString()))
+dai_contract.approve(instance.address, web3.utils.toWei('2000'), {from: accounts[0]})
+dai_contract.allowance(accounts[0], instance.address).then(num => console.log(num.toString()))
 
 ceth_contract.approve(instance.address, "100000000000000000000", {from: ceth_account})
 ceth_contract.allowance(ceth_account, instance.address).then(num => console.log(num.toString()))

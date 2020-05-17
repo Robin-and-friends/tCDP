@@ -3,7 +3,7 @@
  * @dev This file is used to print running environment info and 
  *      set account state to meet testing requirement.
  */
-const tCDP = artifacts.require('./tCDPAave.sol');
+const tCDP = artifacts.require('./rebalanceCDPAave.sol');
 const CTokenInterface = artifacts.require('./CErc20.sol');
 const CEth = artifacts.require('./CEth.sol');
 const ERC20 = artifacts.require('./ERC20.sol');
@@ -48,6 +48,8 @@ async function skip() {
 };
 
 async function run(account) {
+    let debt = web3.utils.toWei('20');
+    
     let instance = await tCDP.deployed()
     let ceth_contract = await CTokenInterface.at(CETH_ADDRESS)
     let cdai_contract = await ERC20.at(CDAI_ADDRESS)
@@ -61,7 +63,7 @@ async function run(account) {
 
     console.log('');
     log(`#########  initiate  #########`);
-    let res = await instance.initiate(web3.utils.toWei('1'), {value: web3.utils.toWei('1'), from: account})
+    let res = await instance.initiate(debt, {value: web3.utils.toWei('1'), from: account})
     await getCollateralAndDebt(instance);
 
     console.log('');
