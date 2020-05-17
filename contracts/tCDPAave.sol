@@ -233,7 +233,6 @@ contract tCDPAave is ERC20Mintable {
     uint256 constant dust = 1e6;
     address constant AAVE_ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     IAToken constant aETH = IAToken(0x3a3A65aAb0dd2A17E3F1947bA16138cd37d08c04);
-    IAToken constant aDAI = IAToken(0xfC1E690f61EFd961294b3e1Ce3313fBD8aa4f85d);
     ERC20 constant Dai = ERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F);
     uint16 constant REFERRAL = 0; // TODO: apply new referral code
 
@@ -245,17 +244,15 @@ contract tCDPAave is ERC20Mintable {
         decimals = 18;
 
         addressesProvider = _provider;
-        address lendingPoolCore = ILendingPoolAddressesProvider(addressesProvider).getLendingPoolCore();
-        Dai.approve(address(lendingPoolCore), uint256(-1));
+        address lendingPoolCoreAddress = addressesProvider.getLendingPoolCore();
+        Dai.approve(lendingPoolCoreAddress, uint256(-1));
     }
 
     function initiate(uint256 amount) external payable {
         require(_totalSupply < dust, "initiated");
         require(msg.value > dust, "value too small");
 
-        ILendingPool lendingPool = ILendingPool(
-            ILendingPoolAddressesProvider(addressesProvider).getLendingPool()
-        );
+        ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
         lendingPool.deposit.value(msg.value)(AAVE_ETH, msg.value, REFERRAL);
 
         _mint(msg.sender, msg.value);
@@ -269,9 +266,7 @@ contract tCDPAave is ERC20Mintable {
     }
 
     function debt() public view returns(uint256) {
-        ILendingPool lendingPool = ILendingPool(
-            ILendingPoolAddressesProvider(addressesProvider).getLendingPool()
-        );
+        ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
         (, uint256 borrowBalance,,,,,,,,) = lendingPool.getUserReserveData(address(Dai), address(this));
         return borrowBalance;
     }
@@ -285,9 +280,7 @@ contract tCDPAave is ERC20Mintable {
         _mint(msg.sender, tokenToMint);
 
         // deposit
-        ILendingPool lendingPool = ILendingPool(
-            ILendingPoolAddressesProvider(addressesProvider).getLendingPool()
-        );
+        ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
         lendingPool.deposit.value(amount)(AAVE_ETH, amount, REFERRAL);
         // borrow
         lendingPool.borrow(address(Dai), tokenToBorrow, 2, REFERRAL);
@@ -304,11 +297,9 @@ contract tCDPAave is ERC20Mintable {
         Dai.transferFrom(msg.sender, address(this), tokenToRepay);
 
         // repay
-        ILendingPool lendingPool = ILendingPool(
-            ILendingPoolAddressesProvider(addressesProvider).getLendingPool()
-        );
-        address lendingPoolCore = ILendingPoolAddressesProvider(addressesProvider).getLendingPoolCore();
-        Dai.approve(lendingPoolCore, tokenToRepay);
+        ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
+        address lendingPoolCoreAddress = addressesProvider.getLendingPoolCore();
+        Dai.approve(lendingPoolCoreAddress, tokenToRepay);
         lendingPool.repay(address(Dai), tokenToRepay, address(this));
 
         // redeem
