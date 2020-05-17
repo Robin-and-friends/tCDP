@@ -251,7 +251,7 @@ contract tCDPAave is ERC20Mintable {
 
     function initiate(uint256 amount) external payable {
         require(_totalSupply < dust, "initiated");
-        require(msg.value > dust);
+        require(msg.value > dust, "value too small");
 
         ILendingPool lendingPool = ILendingPool(
             ILendingPoolAddressesProvider(addressesProvider).getLendingPool()
@@ -316,7 +316,7 @@ contract tCDPAave is ERC20Mintable {
 
         // transfer
         (bool success, ) = msg.sender.call.value(tokenToDraw)("");
-        require(success);
+        require(success, "Failed to transfer ether to msg.sender");
     }
 
     function() external payable{}

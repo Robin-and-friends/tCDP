@@ -202,7 +202,7 @@ contract tCDP is ERC20Mintable {
 
     function initiate(uint256 amount) external payable {
         require(_totalSupply < dust, "initiated");
-        require(msg.value > dust);
+        require(msg.value > dust, "value too small");
 
         cEth.mint.value(msg.value)();
 
@@ -247,7 +247,7 @@ contract tCDP is ERC20Mintable {
         cDai.repayBorrow(tokenToRepay);
         cEth.redeemUnderlying(tokenToDraw);
         (bool success, ) = msg.sender.call.value(tokenToDraw)("");
-        require(success);
+        require(success, "Failed to transfer ether to msg.sender");
     }
 
     function() external payable{}
@@ -270,9 +270,9 @@ contract rebalanceCDP is tCDP {
     address etherAddr = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address ref = 0xD0533664013a82c31584B7FFDB215139f38Ad77A;
 
-    uint256 public upperBound = 4.5e17; //45%
-    uint256 public lowerBound = 3.5e17; //35%
-    uint256 public bite = 2.5e16; //2.5%
+    uint256 public upperBound = 0.45 * 1e18; //45%
+    uint256 public lowerBound = 0.35 * 1e18; //35%
+    uint256 public bite = 0.025 * 1e18; //2.5%
 
     constructor() public {
         Dai.approve(address(kyberNetwork), uint256(-1));
