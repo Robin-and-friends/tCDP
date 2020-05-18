@@ -309,24 +309,24 @@ contract rebalanceCDP is tCDP {
 
 
 
-contract iborrow is rebalanceCDP {
+// contract iborrow is rebalanceCDP {
 
-    uint256 targetRatio;
+//     uint256 targetRatio;
 
-    function getCompoundAPR(address token) public view returns (uint256) {
-        return Compound(token).borrowRatePerBlock().mul(2102400);
-    }
+//     function getCompoundAPR(address token) public view returns (uint256) {
+//         return Compound(token).borrowRatePerBlock().mul(2102400);
+//     }
 
-    function getCompoundAPR(address token) public view returns (uint256) {
-        return Compound(token).supplyRatePerBlock().mul(2102400);
-    }
-    function getAaveAPR(address token) public view returns (uint256) {
-        LendingPoolCore core = LendingPoolCore(LendingPoolAddressesProvider(AAVE).getLendingPoolCore());
-        return core.getReserveCurrentVariableBorrowRate(token).div(1e9);
-    }
+//     function getCompoundAPR(address token) public view returns (uint256) {
+//         return Compound(token).supplyRatePerBlock().mul(2102400);
+//     }
+//     function getAaveAPR(address token) public view returns (uint256) {
+//         LendingPoolCore core = LendingPoolCore(LendingPoolAddressesProvider(AAVE).getLendingPoolCore());
+//         return core.getReserveCurrentVariableBorrowRate(token).div(1e9);
+//     }
 
-    function getAaveAPR(address token) public view returns (uint256) {
-        LendingPoolCore core = LendingPoolCore(LendingPoolAddressesProvider(AAVE).getLendingPoolCore());
-        return core.getReserveCurrentLiquidityRate(token).div(1e9);
-    }
-}
+//     function getAaveAPR(address token) public view returns (uint256) {
+//         LendingPoolCore core = LendingPoolCore(LendingPoolAddressesProvider(AAVE).getLendingPoolCore());
+//         return core.getReserveCurrentLiquidityRate(token).div(1e9);
+//     }
+// }
