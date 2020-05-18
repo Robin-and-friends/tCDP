@@ -139,53 +139,6 @@ contract ERC20Mintable is ERC20 {
     }
 }
 
-interface ILendingPoolCore {
-	function getReserveATokenAddress(address _reserve) external view returns (address);
-    function getReserveCurrentLiquidityRate(address _reserve) external view returns (uint256);
-    function getReserveCurrentVariableBorrowRate(address _reserve) external view returns (uint256);
-}
-
-contract ILendingPoolAddressesProvider {
-
-    function getLendingPool() public view returns (address);
-    function setLendingPoolImpl(address _pool) public;
-
-    function getLendingPoolCore() public view returns (address payable);
-    function setLendingPoolCoreImpl(address _lendingPoolCore) public;
-
-    function getLendingPoolConfigurator() public view returns (address);
-    function setLendingPoolConfiguratorImpl(address _configurator) public;
-
-    function getLendingPoolDataProvider() public view returns (address);
-    function setLendingPoolDataProviderImpl(address _provider) public;
-
-    function getLendingPoolParametersProvider() public view returns (address);
-    function setLendingPoolParametersProviderImpl(address _parametersProvider) public;
-
-    function getTokenDistributor() public view returns (address);
-    function setTokenDistributor(address _tokenDistributor) public;
-
-
-    function getFeeProvider() public view returns (address);
-    function setFeeProviderImpl(address _feeProvider) public;
-
-    function getLendingPoolLiquidationManager() public view returns (address);
-    function setLendingPoolLiquidationManager(address _manager) public;
-
-    function getLendingPoolManager() public view returns (address);
-    function setLendingPoolManager(address _lendingPoolManager) public;
-
-    function getPriceOracle() public view returns (address);
-    function setPriceOracle(address _priceOracle) public;
-
-    function getLendingRateOracle() public view returns (address);
-    function setLendingRateOracle(address _lendingRateOracle) public;
-}
-
-interface CTokenInterface {
-    function borrowRatePerBlock() external returns (uint);
-    function supplyRatePerBlock() external returns (uint);
-}
 
 interface CErc20 {
 
@@ -359,22 +312,21 @@ contract rebalanceCDP is tCDP {
 contract iborrow is rebalanceCDP {
 
     uint256 targetRatio;
-    address constant AAVE_ADDRESSES_PROVIDER = 0x24a42fD28C976A61Df5D00D0599C34c4f90748c8;
 
-    function getCompoundBorrowAPR(address token) public returns (uint256) {
-        return CTokenInterface(token).borrowRatePerBlock().mul(2102400);
+    function getCompoundAPR(address token) public view returns (uint256) {
+        return Compound(token).borrowRatePerBlock().mul(2102400);
     }
 
-    function getCompoundSupplyAPR(address token) public returns (uint256) {
-        return CTokenInterface(token).supplyRatePerBlock().mul(2102400);
+    function getCompoundAPR(address token) public view returns (uint256) {
+        return Compound(token).supplyRatePerBlock().mul(2102400);
     }
-    function getAaveBorrowAPR(address token) public view returns (uint256) {
-        ILendingPoolCore core = ILendingPoolCore(ILendingPoolAddressesProvider(AAVE_ADDRESSES_PROVIDER).getLendingPoolCore());
+    function getAaveAPR(address token) public view returns (uint256) {
+        LendingPoolCore core = LendingPoolCore(LendingPoolAddressesProvider(AAVE).getLendingPoolCore());
         return core.getReserveCurrentVariableBorrowRate(token).div(1e9);
     }
 
-    function getAaveSupplyAPR(address token) public view returns (uint256) {
-        ILendingPoolCore core = ILendingPoolCore(ILendingPoolAddressesProvider(AAVE_ADDRESSES_PROVIDER).getLendingPoolCore());
+    function getAaveAPR(address token) public view returns (uint256) {
+        LendingPoolCore core = LendingPoolCore(LendingPoolAddressesProvider(AAVE).getLendingPoolCore());
         return core.getReserveCurrentLiquidityRate(token).div(1e9);
     }
 }

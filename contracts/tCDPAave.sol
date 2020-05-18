@@ -198,8 +198,6 @@ interface ILendingPool {
 
 interface ILendingPoolCore {
 	function getReserveATokenAddress(address _reserve) external view returns (address);
-    function getReserveCurrentLiquidityRate(address _reserve) external view returns (uint256);
-    function getReserveCurrentVariableBorrowRate(address _reserve) external view returns (uint256);
 }
 
 interface IAavePriceOracleGetter {
