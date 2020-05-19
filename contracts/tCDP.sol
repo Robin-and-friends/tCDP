@@ -232,11 +232,8 @@ interface IAToken {
     function decimals() external view returns (uint8);
 }
 
-library EthAddressLib {
-
-    function ethAddress() internal pure returns(address) {
-        return 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    }
+interface PriceOracle {
+    function getUnderlyingPrice(address) external view returns (uint256);
 }
 
 // ---------- Compound ----------
@@ -279,29 +276,57 @@ interface Comptroller {
     function oracle() external view returns(address);
 }
 
-contract tCDP is ERC20Mintable {
-    using SafeMath for *;
+// ---------- kyber ----------
 
-    uint256 constant dust = 1e6;
+interface Exchange {
+    function trade(
+        address src,
+        uint srcAmount,
+        address dest,
+        address destAddress,
+        uint maxDestAmount,
+        uint minConversionRate,
+        address walletId )external payable returns(uint);
+}
 
+
+// -----tCDP-----
+
+contract tCDPConstants {
+    uint256 constant dust = 1e6; // minimum mint amount
+    ERC20 constant Dai = ERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F); // DAI(debt) token address
+
+    //Compound
     Comptroller constant comptroller = Comptroller(0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B);
     CEth constant cEth = CEth(0x4Ddc2D193948926D02f9B1fE9e1daa0718270ED5);
     CErc20 constant cDai = CErc20(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
-
-    address constant etherAddr = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    ERC20 constant Dai = ERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F);
+    
+    //AAVE
+    ILendingPoolAddressesProvider constant addressesProvider = ILendingPoolAddressesProvider(0x24a42fD28C976A61Df5D00D0599C34c4f90748c8);
     uint16 constant REFERRAL = 0; // TODO: apply new referral code
 
-    ILendingPoolAddressesProvider public addressesProvider;
+    //Kyber
+    Exchange constant kyberNetwork = Exchange(0x818E6FECD516Ecc3849DAf6845e3EC868087B755);
+    address constant etherAddr = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address constant ref = 0xD0533664013a82c31584B7FFDB215139f38Ad77A;
 
-    bool isCompound;
+    //rebalance target/boundary/size
+    uint256 constant targetRatio = 0.4e18; //40%
+    uint256 constant upperBound = 0.45 * 1e18; //45%
+    uint256 constant lowerBound = 0.35 * 1e18; //35%
+    uint256 constant bite = 0.025 * 1e18; //2.5%
+}
 
-    constructor(ILendingPoolAddressesProvider _provider) public {
+contract tCDP is ERC20Mintable, tCDPConstants{
+    using SafeMath for *;
+
+    bool public isCompound;
+
+    constructor() public {
         symbol = "tCDP";
         name = "tokenized CDP";
         decimals = 18;
 
-        addressesProvider = _provider;
         address lendingPoolCoreAddress = addressesProvider.getLendingPoolCore();
         Dai.approve(lendingPoolCoreAddress, uint256(-1));
         Dai.approve(address(cDai), uint256(-1));
@@ -426,34 +451,15 @@ contract tCDP is ERC20Mintable {
     function() external payable{}
 }
 
-contract Exchange {
-    function trade(
-        address src,
-        uint srcAmount,
-        address dest,
-        address destAddress,
-        uint maxDestAmount,
-        uint minConversionRate,
-        address walletId )public payable returns(uint);
-}
-
-interface PriceOracle {
-    function getUnderlyingPrice(address) external view returns (uint256);
-}
-
 contract rebalanceCDP is tCDP {
 
-    Exchange kyberNetwork = Exchange(0x818E6FECD516Ecc3849DAf6845e3EC868087B755);
-    address ref = 0xD0533664013a82c31584B7FFDB215139f38Ad77A;
-
-    uint256 public targetRatio = 0.4e18; //40%
-    uint256 public upperBound = 0.45 * 1e18; //45%
-    uint256 public lowerBound = 0.35 * 1e18; //35%
-    uint256 public bite = 0.025 * 1e18; //2.5%
-
-    constructor(ILendingPoolAddressesProvider _provider) tCDP(_provider) public {
+    constructor() public {
         Dai.approve(address(kyberNetwork), uint256(-1));
         isCompound = findBestRate();
+    }
+
+    function findBestRate() internal view returns(bool) {
+        return AaveDaiAPR().mul(targetRatio).div(1e18).add(CompoundEthAPR()) > CompoundDaiAPR().mul(targetRatio).div(1e18).add(AaveEthAPR());
     }
 
     function debtRatio() public returns(uint256) {
@@ -473,7 +479,7 @@ contract rebalanceCDP is tCDP {
         }
     }
 
-    function deleverage() public {
+    function deleverage() external {
         if(isCompound) {
             require(_totalSupply >= dust, "not initiated");
             require(debtRatio() > upperBound, "debt ratio is good");
@@ -501,7 +507,7 @@ contract rebalanceCDP is tCDP {
         }
     }
 
-    function leverage() public {
+    function leverage() external {
         if(isCompound) {
             require(_totalSupply >= dust, "not initiated");
             require(debtRatio() < lowerBound, "debt ratio is good");
@@ -524,9 +530,6 @@ contract rebalanceCDP is tCDP {
             // deposit
             lendingPool.deposit.value(income)(etherAddr, income, REFERRAL);
         }
-    }
-    function findBestRate() internal view returns(bool) {
-        return AaveDaiAPR().mul(targetRatio).div(1e18).add(CompoundEthAPR()) > CompoundDaiAPR().mul(targetRatio).div(1e18).add(AaveEthAPR());
     }
 
     function migrate() external returns(uint256) {
