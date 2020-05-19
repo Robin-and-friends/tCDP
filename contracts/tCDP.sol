@@ -381,26 +381,19 @@ contract tCDP is ERC20Mintable, tCDPConstants{
     }
 
     function mint() external payable returns(uint256) {
+
+        require(_totalSupply >= dust, "not initiated");
+        uint256 amount = msg.value;
+        uint256 tokenToMint = _totalSupply.mul(amount).div(collateral());
+        uint256 tokenToBorrow = debt().mul(amount).div(collateral());
+        _mint(msg.sender, tokenToMint);
+
         if(isCompound) {
-            require(_totalSupply >= dust, "not initiated");
-            uint256 amount = msg.value;
-            uint256 tokenToMint = _totalSupply.mul(amount).div(collateral());
-            uint256 tokenToBorrow = debt().mul(amount).div(collateral());
-
-            _mint(msg.sender, tokenToMint);
-
             cEth.mint.value(amount)();
             cDai.borrow(tokenToBorrow);
             Dai.transfer(msg.sender, tokenToBorrow);
         }
         else{
-            require(_totalSupply >= dust, "not initiated");
-            uint256 amount = msg.value;
-            uint256 tokenToMint = _totalSupply.mul(amount).div(collateral());
-            uint256 tokenToBorrow = debt().mul(amount).div(collateral());
-
-            _mint(msg.sender, tokenToMint);
-
             // deposit
             ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
             lendingPool.deposit.value(amount)(etherAddr, amount, REFERRAL);
@@ -409,43 +402,34 @@ contract tCDP is ERC20Mintable, tCDPConstants{
             // transfer
             Dai.transfer(msg.sender, tokenToBorrow);
         }
+
+        return tokenToMint;
     }
 
     function burn(uint256 amount) external {
+
+        uint256 tokenToRepay = amount.mul(debt()).div(_totalSupply);
+        uint256 tokenToDraw = amount.mul(collateral()).div(_totalSupply);
+        _burn(msg.sender, amount);
+        Dai.transferFrom(msg.sender, address(this), tokenToRepay);
+
         if(isCompound) {
-            uint256 tokenToRepay = amount.mul(debt()).div(_totalSupply);
-            uint256 tokenToDraw = amount.mul(collateral()).div(_totalSupply);
-
-            _burn(msg.sender, amount);
-
-            Dai.transferFrom(msg.sender, address(this), tokenToRepay);
             cDai.repayBorrow(tokenToRepay);
             cEth.redeemUnderlying(tokenToDraw);
-            (bool success, ) = msg.sender.call.value(tokenToDraw)("");
-            require(success, "Failed to transfer ether to msg.sender");
         }
         else {
-            uint256 tokenToRepay = amount.mul(debt()).div(_totalSupply);
-            uint256 tokenToDraw = amount.mul(collateral()).div(_totalSupply);
-
-            _burn(msg.sender, amount);
-
-            Dai.transferFrom(msg.sender, address(this), tokenToRepay);
-
             // repay
             ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
             address lendingPoolCoreAddress = addressesProvider.getLendingPoolCore();
             // Dai.approve(lendingPoolCoreAddress, tokenToRepay);
             lendingPool.repay(address(Dai), tokenToRepay, address(this));
-
             // redeem
             IAToken aETH = IAToken(ILendingPoolCore(lendingPoolCoreAddress).getReserveATokenAddress(etherAddr));
             aETH.redeem(tokenToDraw);
-
-            // transfer
-            (bool success, ) = msg.sender.call.value(tokenToDraw)("");
-            require(success, "Failed to transfer ether to msg.sender");
         }
+
+        (bool success, ) = msg.sender.call.value(tokenToDraw)("");
+        require(success, "Failed to transfer ether to msg.sender");
     }
 
     function() external payable{}
@@ -458,11 +442,28 @@ contract rebalanceCDP is tCDP {
         isCompound = findBestRate();
     }
 
-    function findBestRate() internal view returns(bool) {
+    // ----- APR -----
+
+    //true if (cEth APR - cDai APR) >= (aEth APR - aDai APR), otherwise, false
+    function findBestRate() internal view returns (bool) {
         return AaveDaiAPR().mul(targetRatio).div(1e18).add(CompoundEthAPR()) > CompoundDaiAPR().mul(targetRatio).div(1e18).add(AaveEthAPR());
     }
+    function CompoundDaiAPR() public view returns (uint256) {
+        return cDai.borrowRatePerBlock().mul(2102400);
+    }
+    function CompoundEthAPR() public view returns (uint256) {
+        return cEth.supplyRatePerBlock().mul(2102400);
+    }
+    function AaveDaiAPR() public view returns (uint256) {
+        ILendingPoolCore core = ILendingPoolCore(addressesProvider.getLendingPoolCore());
+        return core.getReserveCurrentVariableBorrowRate(address(Dai)).div(1e9);
+    }
+    function AaveEthAPR() public view returns (uint256) {
+        ILendingPoolCore core = ILendingPoolCore(addressesProvider.getLendingPoolCore());
+        return core.getReserveCurrentLiquidityRate(address(Dai)).div(1e9);
+    }
 
-    function debtRatio() public returns(uint256) {
+    function debtRatio() public returns (uint256) {
         if(isCompound) {
             address oracle = comptroller.oracle();
             PriceOracle priceOracle = PriceOracle(oracle);
@@ -532,13 +533,12 @@ contract rebalanceCDP is tCDP {
         }
     }
 
-    function migrate() external returns(uint256) {
+    function migrate() external {
         if(findBestRate() != isCompound) {
             uint256 _debt = debt();
             uint256 _collateral = collateral();
             Dai.transferFrom(msg.sender, address(this), _debt);
             
-
             if(isCompound) {
                 cDai.repayBorrow(_debt);
                 cEth.redeemUnderlying(_collateral);
@@ -550,7 +550,6 @@ contract rebalanceCDP is tCDP {
                 isCompound = false;    
             }
             else {
-
                 ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
                 address lendingPoolCoreAddress = addressesProvider.getLendingPoolCore();
                 lendingPool.repay(address(Dai), _debt, address(this));
@@ -568,19 +567,5 @@ contract rebalanceCDP is tCDP {
 
     }
 
-    function CompoundDaiAPR() public view returns (uint256) {
-        return cDai.borrowRatePerBlock().mul(2102400);
-    }
-    function CompoundEthAPR() public view returns (uint256) {
-        return cEth.supplyRatePerBlock().mul(2102400);
-    }
-    function AaveDaiAPR() public view returns (uint256) {
-        ILendingPoolCore core = ILendingPoolCore(addressesProvider.getLendingPoolCore());
-        return core.getReserveCurrentVariableBorrowRate(address(Dai)).div(1e9);
-    }
-    function AaveEthAPR() public view returns (uint256) {
-        ILendingPoolCore core = ILendingPoolCore(addressesProvider.getLendingPoolCore());
-        return core.getReserveCurrentLiquidityRate(address(Dai)).div(1e9);
-    }
 }
 
