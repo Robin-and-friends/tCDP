@@ -1,0 +1,27 @@
+{
+  "name": "tcdp",
+  "version": "1.0.0",
+  "description": "collateralized debt position, but fungible",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/artistic709/tCDP.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/artistic709/tCDP/issues"
+  },
+  "homepage": "https://github.com/artistic709/tCDP#readme",
+  "devDependencies": {
+    "@openzeppelin/test-helpers": "^0.5.5",
+    "chai": "^4.2.0",
+    "truffle": "^5.1.26"
+  }
+}
