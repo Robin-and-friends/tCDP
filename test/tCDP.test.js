@@ -43,7 +43,7 @@
       it('initiate', async function() {
         await this.tcdp.initiate(borrowAmt, {value: supplyAmt, from: user});
 
-        [collateral, debt] = await getCollateralAndDebt(instance);
+        [collateral, debt] = await getCollateralAndDebt(this.tcdp);
 
         console.log(`collateral: ${collateral}`);
         console.log(`debt: ${debt}`);
