@@ -7,7 +7,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "scripts/test.sh --network test"
   },
   "repository": {
     "type": "git",
@@ -22,6 +22,7 @@
   "devDependencies": {
     "@openzeppelin/test-helpers": "^0.5.5",
     "chai": "^4.2.0",
+    "ganache-cli": "^6.9.1",
     "truffle": "^5.1.26"
   }
 }
