@@ -11,14 +11,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/artistic709/tCDP.git"
+    "url": "git+https://github.com/Robin-and-friends/tCDP.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/artistic709/tCDP/issues"
+    "url": "https://github.com/Robin-and-friends/tCDP/issues"
   },
-  "homepage": "https://github.com/artistic709/tCDP#readme",
+  "homepage": "https://github.com/Robin-and-friends/tCDP#readme",
   "devDependencies": {
     "@openzeppelin/test-helpers": "^0.5.5",
     "chai": "^4.2.0",

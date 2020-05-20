@@ -5,10 +5,8 @@ set -o errexit
 trap cleanup EXIT
 
 
-ganache_port=8545
-
 ganache_running() {
-  nc -z localhost "$ganache_port"
+  nc -z localhost $1
 }
 
 # Kills ganache process with its PID in $ganache_pid.
@@ -28,7 +26,7 @@ if ganache_running 8545; then
 else
   echo "Starting our own ganache instance"
 
-  npx ganache-cli -f https://mainnet.infura.io/v3/$INFURA_API_KEY -m "$TEST_MNEMONIC_PHRASE" > ganache.log & ganache_pid=$!
+  npx ganache-cli -p 8545 -f https://mainnet.infura.io/v3/$INFURA_API_KEY -m "$TEST_MNEMONIC_PHRASE" > ganache.log & ganache_pid=$!
 fi
 
 # Run the truffle test or the solidity-coverage suite.
