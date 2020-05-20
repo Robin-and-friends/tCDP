@@ -64,3 +64,7 @@ async function getCollateralAndDebt(tCDP) {
 
     return [collateral, debt];
 }
+
+function log(msg) {
+  console.log(`> ${msg}`)
+}
