@@ -95,10 +95,10 @@
   
   
 async function getCollateralAndDebt(tCDP) {
-    let collateral = web3.utils.fromWei((await tCDP.collateral.call()).toString());
-    let debt = web3.utils.fromWei((await tCDP.debt.call()).toString());
-    log(`Collateral: ${collateral}`);
-    log(`Debt: ${debt}`);
+    let collateral = await tCDP.collateral.call();
+    let debt = await tCDP.debt.call();
+    log(`Collateral: ${web3.utils.fromWei(collateral.toString())}`);
+    log(`Debt: ${web3.utils.fromWei(debt.toString())}`);
 
     return [collateral, debt];
 }
