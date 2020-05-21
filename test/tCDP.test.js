@@ -30,11 +30,11 @@
       this.dai = await ERC20.at(addr.DAI.TOKEN_ADDRESS);
     });
     
-    beforeEach(async function() {
-      this.tcdp = await tCDP.new();
-    });
-  
     describe("Compound", function() {
+      before(async function() {
+        this.tcdp = await tCDP.new();
+      });
+
       const isCompound = true;
       let supplyAmt = ether('1');
       let borrowAmt = ether('80');
