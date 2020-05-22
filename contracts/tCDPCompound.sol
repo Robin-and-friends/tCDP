@@ -304,29 +304,12 @@ contract rebalanceCDP is tCDP {
         cEth.mint.value(income)();
     }
 
+    function CompoundDaiAPR() public view returns (uint256) {
+        return cDai.borrowRatePerBlock().mul(2102400);
+    }
+    
+    function CompoundEthAPR() public view returns (uint256) {
+        return cEth.supplyRatePerBlock().mul(2102400);
+    }
 
 }
-
-
-
-// contract iborrow is rebalanceCDP {
-
-//     uint256 targetRatio;
-
-//     function getCompoundAPR(address token) public view returns (uint256) {
-//         return Compound(token).borrowRatePerBlock().mul(2102400);
-//     }
-
-//     function getCompoundAPR(address token) public view returns (uint256) {
-//         return Compound(token).supplyRatePerBlock().mul(2102400);
-//     }
-//     function getAaveAPR(address token) public view returns (uint256) {
-//         LendingPoolCore core = LendingPoolCore(LendingPoolAddressesProvider(AAVE).getLendingPoolCore());
-//         return core.getReserveCurrentVariableBorrowRate(token).div(1e9);
-//     }
-
-//     function getAaveAPR(address token) public view returns (uint256) {
-//         LendingPoolCore core = LendingPoolCore(LendingPoolAddressesProvider(AAVE).getLendingPoolCore());
-//         return core.getReserveCurrentLiquidityRate(token).div(1e9);
-//     }
-// }
