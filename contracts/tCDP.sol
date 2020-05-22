@@ -303,7 +303,7 @@ contract tCDPConstants {
     
     //AAVE
     ILendingPoolAddressesProvider constant addressesProvider = ILendingPoolAddressesProvider(0x24a42fD28C976A61Df5D00D0599C34c4f90748c8);
-    uint16 constant REFERRAL = 0; // TODO: apply new referral code
+    uint16 constant REFERRAL = 47; // TODO: apply new referral code
 
     //Kyber
     Exchange constant kyberNetwork = Exchange(0x818E6FECD516Ecc3849DAf6845e3EC868087B755);
@@ -312,8 +312,8 @@ contract tCDPConstants {
 
     //rebalance target/boundary/size
     uint256 constant targetRatio = 0.4e18; //40%
-    uint256 constant upperBound = 0.45 * 1e18; //45%
-    uint256 constant lowerBound = 0.35 * 1e18; //35%
+    uint256 constant upperBound = 444444444444444444; // 1/225%
+    uint256 constant lowerBound = 363636363636363636; // 1/275%
     uint256 constant bite = 0.025 * 1e18; //2.5%
 }
 
