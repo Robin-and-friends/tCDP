@@ -438,7 +438,7 @@ contract tCDP is ERC20Mintable, tCDPConstants{
     function() external payable{}
 
     //true if (cEth APR - cDai APR) >= (aEth APR - aDai APR), otherwise, false
-    function findBestRate() internal view returns (bool) {
+    function findBestRate() public view returns (bool) {
         return AaveDaiAPR().mul(targetRatio).div(1e18).add(CompoundEthAPR()) > CompoundDaiAPR().mul(targetRatio).div(1e18).add(AaveEthAPR());
     }
     function CompoundDaiAPR() public view returns (uint256) {
@@ -559,5 +559,5 @@ contract tCDP is ERC20Mintable, tCDPConstants{
         }
 
     }
-    
+
 }
