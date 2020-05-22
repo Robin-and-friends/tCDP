@@ -158,6 +158,8 @@ interface CEth {
     function redeemUnderlying(uint redeemAmount) external returns (uint256);
 
     function balanceOfUnderlying(address owner) external returns (uint256);
+
+    function supplyRatePerBlock() external view returns (uint256);
 }
 
 
@@ -307,7 +309,7 @@ contract rebalanceCDP is tCDP {
     function CompoundDaiAPR() public view returns (uint256) {
         return cDai.borrowRatePerBlock().mul(2102400);
     }
-    
+
     function CompoundEthAPR() public view returns (uint256) {
         return cEth.supplyRatePerBlock().mul(2102400);
     }
