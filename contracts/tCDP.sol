@@ -347,7 +347,7 @@ contract tCDP is ERC20Mintable, tCDPConstants{
         if(isCompound) {
             cEth.mint.value(msg.value)();
             _mint(msg.sender, msg.value);
-            cDai.borrow(amount);
+            require(cDai.borrow(amount) == 0, "borrow failed");
             Dai.transfer(msg.sender, amount);
         }
         else {
@@ -393,7 +393,7 @@ contract tCDP is ERC20Mintable, tCDPConstants{
 
         if(isCompound) {
             cEth.mint.value(amount)();
-            cDai.borrow(tokenToBorrow);
+            require(cDai.borrow(tokenToBorrow) == 0, "borrow failed");
             Dai.transfer(msg.sender, tokenToBorrow);
         }
         else{
@@ -417,8 +417,8 @@ contract tCDP is ERC20Mintable, tCDPConstants{
         Dai.transferFrom(msg.sender, address(this), tokenToRepay);
 
         if(isCompound) {
-            cDai.repayBorrow(tokenToRepay);
-            cEth.redeemUnderlying(tokenToDraw);
+            require(cDai.repayBorrow(tokenToRepay) == 0, "repay failed");
+            require(cEth.redeemUnderlying(tokenToDraw) == 0, "redeem failed");
         }
         else {
             // repay
@@ -478,9 +478,9 @@ contract tCDP is ERC20Mintable, tCDPConstants{
             require(_totalSupply >= dust, "not initiated");
             require(debtRatio() > upperBound, "debt ratio is good");
             uint256 amount = collateral().mul(bite).div(1e18);
-            cEth.redeemUnderlying(amount);
+            require(cEth.redeemUnderlying(amount) == 0, "redeem failed");
             uint256 income = kyberNetwork.trade.value(amount)(etherAddr, amount, address(Dai), address(this), 1e28, 1, ref);
-            cDai.repayBorrow(income);
+            require(cDai.repayBorrow(income) == 0, "repay failed");
         }
         else {
             require(_totalSupply >= dust, "not initiated");
@@ -506,7 +506,7 @@ contract tCDP is ERC20Mintable, tCDPConstants{
             require(_totalSupply >= dust, "not initiated");
             require(debtRatio() < lowerBound, "debt ratio is good");
             uint256 amount = debt().mul(bite).div(1e18);
-            cDai.borrow(amount);
+            require(cDai.borrow(amount) == 0, "borrow failed");
             uint256 income = kyberNetwork.trade(address(Dai), amount, etherAddr, address(this), 1e28, 1, ref);
             cEth.mint.value(income)();
         }
@@ -533,8 +533,8 @@ contract tCDP is ERC20Mintable, tCDPConstants{
             Dai.transferFrom(msg.sender, address(this), _debt);
             
             if(isCompound) {
-                cDai.repayBorrow(_debt);
-                cEth.redeemUnderlying(_collateral);
+                require(cDai.repayBorrow(_debt) == 0, "borrow failed");
+                require(cEth.redeemUnderlying(_collateral) == 0, "redeem failed");
 
                 ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
                 lendingPool.deposit.value(_collateral)(etherAddr, _collateral, REFERRAL);
@@ -550,7 +550,7 @@ contract tCDP is ERC20Mintable, tCDPConstants{
                 aETH.redeem(_collateral);
 
                 cEth.mint.value(_collateral)();
-                cDai.borrow(_debt);
+                require(cDai.borrow(_debt) == 0, "borrow failed");
 
                 isCompound = true;
             }
