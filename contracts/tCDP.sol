@@ -335,6 +335,9 @@ contract tCDP is ERC20Mintable, tCDPConstants{
         cTokens[0] = address(cEth);
         uint256[] memory errors = comptroller.enterMarkets(cTokens);
         require(errors[0] == 0, "Comptroller.enterMarkets failed.");
+
+        Dai.approve(address(kyberNetwork), uint256(-1));
+        isCompound = findBestRate();
     }
 
     function initiate(uint256 amount) external payable {
@@ -433,16 +436,6 @@ contract tCDP is ERC20Mintable, tCDPConstants{
     }
 
     function() external payable{}
-}
-
-contract rebalanceCDP is tCDP {
-
-    constructor() public {
-        Dai.approve(address(kyberNetwork), uint256(-1));
-        isCompound = findBestRate();
-    }
-
-    // ----- APR -----
 
     //true if (cEth APR - cDai APR) >= (aEth APR - aDai APR), otherwise, false
     function findBestRate() internal view returns (bool) {
@@ -566,6 +559,5 @@ contract rebalanceCDP is tCDP {
         }
 
     }
-
+    
 }
-
