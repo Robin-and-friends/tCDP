@@ -460,7 +460,7 @@ contract rebalanceCDP is tCDP {
     }
     function AaveEthAPR() public view returns (uint256) {
         ILendingPoolCore core = ILendingPoolCore(addressesProvider.getLendingPoolCore());
-        return core.getReserveCurrentLiquidityRate(address(Dai)).div(1e9);
+        return core.getReserveCurrentLiquidityRate(etherAddr).div(1e9);
     }
 
     function debtRatio() public returns (uint256) {
