@@ -323,8 +323,8 @@ contract tCDP is ERC20Mintable, tCDPConstants{
     bool public isCompound;
 
     constructor() public {
-        symbol = "tCDP";
-        name = "tokenized CDP";
+        symbol = "tETH/DAI";
+        name = "tokenized CDP ETH/DAI";
         decimals = 18;
 
         address lendingPoolCoreAddress = addressesProvider.getLendingPoolCore();
@@ -474,26 +474,21 @@ contract tCDP is ERC20Mintable, tCDPConstants{
     }
 
     function deleverage() external {
+        require(_totalSupply >= dust, "not initiated");
+        require(debtRatio() > upperBound, "debt ratio is good");
+        uint256 amount = collateral().mul(bite).div(1e18);
+        
         if(isCompound) {
-            require(_totalSupply >= dust, "not initiated");
-            require(debtRatio() > upperBound, "debt ratio is good");
-            uint256 amount = collateral().mul(bite).div(1e18);
             require(cEth.redeemUnderlying(amount) == 0, "redeem failed");
             uint256 income = kyberNetwork.trade.value(amount)(etherAddr, amount, address(Dai), address(this), 1e28, 1, ref);
             require(cDai.repayBorrow(income) == 0, "repay failed");
         }
         else {
-            require(_totalSupply >= dust, "not initiated");
-            require(debtRatio() > upperBound, "debt ratio is good");
-            uint256 amount = collateral().mul(bite).div(1e18);
-
             // redeem
             address lendingPoolCoreAddress = addressesProvider.getLendingPoolCore();
             IAToken aETH = IAToken(ILendingPoolCore(lendingPoolCoreAddress).getReserveATokenAddress(etherAddr));
             aETH.redeem(amount);
-
             uint256 income = kyberNetwork.trade.value(amount)(etherAddr, amount, address(Dai), address(this), 1e28, 1, ref);
-
             // repay
             ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
             // Dai.approve(lendingPoolCoreAddress, income);
@@ -502,25 +497,20 @@ contract tCDP is ERC20Mintable, tCDPConstants{
     }
 
     function leverage() external {
+        require(_totalSupply >= dust, "not initiated");
+        require(debtRatio() < lowerBound, "debt ratio is good");
+        uint256 amount = debt().mul(bite).div(1e18);
+        
         if(isCompound) {
-            require(_totalSupply >= dust, "not initiated");
-            require(debtRatio() < lowerBound, "debt ratio is good");
-            uint256 amount = debt().mul(bite).div(1e18);
             require(cDai.borrow(amount) == 0, "borrow failed");
             uint256 income = kyberNetwork.trade(address(Dai), amount, etherAddr, address(this), 1e28, 1, ref);
             cEth.mint.value(income)();
         }
         else {
-            require(_totalSupply >= dust, "not initiated");
-            require(debtRatio() < lowerBound, "debt ratio is good");
-            uint256 amount = debt().mul(bite).div(1e18);
-
             // borrow
             ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
             lendingPool.borrow(address(Dai), amount, 2, REFERRAL);
-
             uint256 income = kyberNetwork.trade(address(Dai), amount, etherAddr, address(this), 1e28, 1, ref);
-
             // deposit
             lendingPool.deposit.value(income)(etherAddr, income, REFERRAL);
         }
