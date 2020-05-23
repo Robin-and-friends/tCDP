@@ -110,9 +110,9 @@
         await this.tcdp.migrate({from: ethWhale});
         [collateralBefore, debtBefore] = await getCollateralAndDebt(this.tcdp);
         let ethData = await this.lendingPool.getUserReserveData(addr.ETH.TOKEN_ADDRESS, this.tcdp.address);
-        console.log(`Aave ETH data: ${JSON.stringify(ethData)}`);
+        console.log(`Aave ETH collateral: ${fromWei(ethData[0].toString())}`);
         let daiData = await this.lendingPool.getUserReserveData(addr.DAI.TOKEN_ADDRESS, this.tcdp.address);
-        console.log(`Aave ETH data: ${JSON.stringify(daiData)}`);
+        console.log(`Aave DAI borrow: ${fromWei(daiData[1].toString())}`);
       });
   
   
