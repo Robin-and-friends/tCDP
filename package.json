@@ -1,0 +1,28 @@
+{
+  "name": "tcdp",
+  "version": "1.0.0",
+  "description": "collateralized debt position, but fungible",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "scripts/test.sh --network test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Robin-and-friends/tCDP.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Robin-and-friends/tCDP/issues"
+  },
+  "homepage": "https://github.com/Robin-and-friends/tCDP#readme",
+  "devDependencies": {
+    "@openzeppelin/test-helpers": "^0.5.5",
+    "chai": "^4.2.0",
+    "ganache-cli": "^6.9.1",
+    "truffle": "^5.1.26"
+  }
+}
