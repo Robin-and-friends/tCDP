@@ -325,8 +325,8 @@ contract tCDP is ERC20Mintable, tCDPConstants{
     event Migration(uint8); // 0x01 = to Compound, 0x02 = to Aave
 
     constructor() public {
-        symbol = "tETH/DAI";
-        name = "tokenized CDP ETH/DAI";
+        symbol = "tETH-DAI";
+        name = "tokenized CDP ETH-DAI v1";
         decimals = 18;
 
         address lendingPoolCoreAddress = addressesProvider.getLendingPoolCore();
