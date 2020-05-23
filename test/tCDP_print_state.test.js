@@ -14,7 +14,7 @@
   
   const addr = require('./utils/addresses');
   
-  const tCDP = artifacts.require('tCDP');
+  const tCDP = artifacts.require('MockTCDP');
   const flahsMigrater = artifacts.require('FlashMigrator');
   const ERC20 = artifacts.require('ERC20');
   const Comptroller = artifacts.require('Comptroller');
