@@ -4,7 +4,7 @@ pragma solidity ^0.5.12;
 library SafeMath {
 
     function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-        if (a == 0) 
+        if (a == 0)
             return 0;
         uint256 c = a * b;
         require(c / a == b);
@@ -41,7 +41,7 @@ contract ERC20 {
 
     mapping (address => uint256) internal _balances;
     mapping (address => mapping (address => uint256)) internal _allowed;
-    
+
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
 
@@ -300,7 +300,7 @@ contract tCDPConstants {
     Comptroller constant comptroller = Comptroller(0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B);
     CEth constant cEth = CEth(0x4Ddc2D193948926D02f9B1fE9e1daa0718270ED5);
     CErc20 constant cDai = CErc20(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
-    
+
     //AAVE
     ILendingPoolAddressesProvider constant addressesProvider = ILendingPoolAddressesProvider(0x24a42fD28C976A61Df5D00D0599C34c4f90748c8);
     uint16 constant REFERRAL = 47; // TODO: apply new referral code
@@ -343,7 +343,7 @@ contract tCDP is ERC20Mintable, tCDPConstants{
     function initiate(uint256 amount) external payable {
         require(_totalSupply < dust, "initiated");
         require(msg.value > dust, "value too small");
-        
+
         if(isCompound) {
             cEth.mint.value(msg.value)();
             _mint(msg.sender, msg.value);
@@ -365,7 +365,7 @@ contract tCDP is ERC20Mintable, tCDPConstants{
         if(isCompound) {
             return cEth.balanceOfUnderlying(address(this));
         }
-        else {   
+        else {
             address lendingPoolCore = addressesProvider.getLendingPoolCore();
             address aETH = ILendingPoolCore(lendingPoolCore).getReserveATokenAddress(etherAddr);
             return IAToken(aETH).balanceOf(address(this));
@@ -477,7 +477,7 @@ contract tCDP is ERC20Mintable, tCDPConstants{
         require(_totalSupply >= dust, "not initiated");
         require(debtRatio() > upperBound, "debt ratio is good");
         uint256 amount = collateral().mul(bite).div(1e18);
-        
+
         if(isCompound) {
             require(cEth.redeemUnderlying(amount) == 0, "redeem failed");
             uint256 income = kyberNetwork.trade.value(amount)(etherAddr, amount, address(Dai), address(this), 1e28, 1, ref);
@@ -500,7 +500,7 @@ contract tCDP is ERC20Mintable, tCDPConstants{
         require(_totalSupply >= dust, "not initiated");
         require(debtRatio() < lowerBound, "debt ratio is good");
         uint256 amount = debt().mul(bite).div(1e18);
-        
+
         if(isCompound) {
             require(cDai.borrow(amount) == 0, "borrow failed");
             uint256 income = kyberNetwork.trade(address(Dai), amount, etherAddr, address(this), 1e28, 1, ref);
@@ -521,7 +521,7 @@ contract tCDP is ERC20Mintable, tCDPConstants{
             uint256 _debt = debt();
             uint256 _collateral = collateral();
             Dai.transferFrom(msg.sender, address(this), _debt);
-            
+
             if(isCompound) {
                 require(cDai.repayBorrow(_debt) == 0, "borrow failed");
                 require(cEth.redeemUnderlying(_collateral) == 0, "redeem failed");
@@ -530,7 +530,7 @@ contract tCDP is ERC20Mintable, tCDPConstants{
                 lendingPool.deposit.value(_collateral)(etherAddr, _collateral, REFERRAL);
                 lendingPool.borrow(address(Dai), _debt, 2, REFERRAL);
 
-                isCompound = false;    
+                isCompound = false;
             }
             else {
                 ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
