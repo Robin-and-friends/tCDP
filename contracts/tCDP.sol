@@ -458,21 +458,27 @@ contract tCDP is ERC20Mintable, tCDPConstants{
         return core.getReserveCurrentLiquidityRate(etherAddr).div(1e9);
     }
 
-    function debtRatio() public returns (uint256) {
+    function getUnderlyingPrice() public view returns(uint256) {
+        uint256 price;
+
         if(isCompound) {
             address oracle = comptroller.oracle();
             PriceOracle priceOracle = PriceOracle(oracle);
-            uint256 price = priceOracle.getUnderlyingPrice(address(cDai));
-            uint256 ratio = debt().mul(price).div(collateral());
-            return ratio;
+            price = priceOracle.getUnderlyingPrice(address(cDai));
         }
         else {
             address oracleAddress = addressesProvider.getPriceOracle();
             IAavePriceOracleGetter priceOracle = IAavePriceOracleGetter(oracleAddress);
-            uint256 price = priceOracle.getAssetPrice(address(Dai));
-            uint256 ratio = debt().mul(price).div(collateral());
-            return ratio;
+            price = priceOracle.getAssetPrice(address(Dai));
         }
+
+        return price;
+    }
+
+    function debtRatio() public returns (uint256) {
+        uint256 price = getUnderlyingPrice();
+        uint256 ratio = debt().mul(price).div(collateral());
+        return ratio;
     }
 
     function deleverage() external {
