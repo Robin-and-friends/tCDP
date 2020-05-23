@@ -322,6 +322,8 @@ contract tCDP is ERC20Mintable, tCDPConstants{
 
     bool public isCompound;
 
+    event Migration(uint8); // 0x01 = to Compound, 0x02 = to Aave
+
     constructor() public {
         symbol = "tCDP";
         name = "tokenized CDP";
@@ -538,6 +540,7 @@ contract rebalanceCDP is tCDP {
             uint256 _debt = debt();
             uint256 _collateral = collateral();
             Dai.transferFrom(msg.sender, address(this), _debt);
+            uint256 newBorrow = _debt.add(2);
             
             if(isCompound) {
                 cDai.repayBorrow(_debt);
@@ -545,9 +548,10 @@ contract rebalanceCDP is tCDP {
 
                 ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
                 lendingPool.deposit.value(_collateral)(etherAddr, _collateral, REFERRAL);
-                lendingPool.borrow(address(Dai), _debt, 2, REFERRAL);
+                lendingPool.borrow(address(Dai), newBorrow, 2, REFERRAL);
 
-                isCompound = false;    
+                isCompound = false;
+                emit Migration(0x02);
             }
             else {
                 ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
@@ -557,12 +561,13 @@ contract rebalanceCDP is tCDP {
                 aETH.redeem(_collateral);
 
                 cEth.mint.value(_collateral)();
-                cDai.borrow(_debt);
+                cDai.borrow(newBorrow);
 
                 isCompound = true;
+                emit Migration(0x01);
             }
 
-            Dai.transfer(msg.sender, _debt);
+            Dai.transfer(msg.sender, newBorrow);
         }
 
     }

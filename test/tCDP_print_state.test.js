@@ -15,7 +15,7 @@
   const addr = require('./utils/addresses');
   
   const tCDP = artifacts.require('MockRebalanceCDP');
-  const rebalanceCDP = artifacts.require('MockRebalanceCDP');
+  const flahsMigrater = artifacts.require('FlashMigrator');
   const ERC20 = artifacts.require('ERC20');
   const Comptroller = artifacts.require('Comptroller');
   const CETH = artifacts.require('CEth');
@@ -43,6 +43,7 @@
     describe("Compound", function() {
       before(async function() {
         this.tcdp = await tCDP.new();
+        log(`tCDP address: ${this.tcdp.address}`);
       });
 
       // const isCompound = true;
@@ -102,12 +103,27 @@
         log(`Compound has better rate? ${isCompound}`);
       });
 
-      it('migrate to Aave', async function() {
+      // it('migrate to Aave', async function() {
+      //   [collateralBefore, debtBefore] = await getCollateralAndDebt(this.tcdp);
+      //   log(`======================= migrate to Aave =======================`)
+      //   await this.dai.approve(this.tcdp.address, constants.MAX_UINT256, {from: ethWhale})
+      //   await this.dai.allowance(ethWhale, this.tcdp.address).then(num => log("DAI Allowance: " + num.toString()))
+      //   await this.tcdp.migrate({from: ethWhale});
+      //   [collateralBefore, debtBefore] = await getCollateralAndDebt(this.tcdp);
+      //   let ethData = await this.lendingPool.getUserReserveData(addr.ETH.TOKEN_ADDRESS, this.tcdp.address);
+      //   log(`Aave ETH collateral: ${fromWei(ethData[0].toString())}`);
+      //   let daiData = await this.lendingPool.getUserReserveData(addr.DAI.TOKEN_ADDRESS, this.tcdp.address);
+      //   log(`Aave DAI borrow: ${fromWei(daiData[1].toString())}`);
+      // });
+
+      it('flahsMigrate to Aave', async function() {
+        const solo = '0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e';
+        this.migrater = await flahsMigrater.new(this.tcdp.address);
+        log(`migrater address: ${this.migrater.address}`);
+        
         [collateralBefore, debtBefore] = await getCollateralAndDebt(this.tcdp);
-        log(`======================= migrate to Aave =======================`)
-        await this.dai.approve(this.tcdp.address, constants.MAX_UINT256, {from: ethWhale})
-        await this.dai.allowance(ethWhale, this.tcdp.address).then(num => log("DAI Allowance: " + num.toString()))
-        await this.tcdp.migrate({from: ethWhale});
+        log(`======================= flash migrate to Aave =======================`)
+        await this.migrater.flashMigrate(solo);
         [collateralBefore, debtBefore] = await getCollateralAndDebt(this.tcdp);
         let ethData = await this.lendingPool.getUserReserveData(addr.ETH.TOKEN_ADDRESS, this.tcdp.address);
         log(`Aave ETH collateral: ${fromWei(ethData[0].toString())}`);
