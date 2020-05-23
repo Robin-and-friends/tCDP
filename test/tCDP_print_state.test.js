@@ -95,7 +95,7 @@
         await this.comptroller.enterMarkets([addr.ETH.CTOKEN_ADDRESS], {from: ethWhale});
         await getAPRs(this.tcdp);
         log(`======================= borrow DAI from Compound =======================`)
-        await this.cdai.borrow(ether('7000000'), {from: ethWhale});
+        await this.cdai.borrow(ether('9000000'), {from: ethWhale});
         await getAPRs(this.tcdp);
 
         let isCompound = await this.tcdp.findBestRate.call();
@@ -110,9 +110,9 @@
         await this.tcdp.migrate({from: ethWhale});
         [collateralBefore, debtBefore] = await getCollateralAndDebt(this.tcdp);
         let ethData = await this.lendingPool.getUserReserveData(addr.ETH.TOKEN_ADDRESS, this.tcdp.address);
-        console.log(`Aave ETH collateral: ${fromWei(ethData[0].toString())}`);
+        log(`Aave ETH collateral: ${fromWei(ethData[0].toString())}`);
         let daiData = await this.lendingPool.getUserReserveData(addr.DAI.TOKEN_ADDRESS, this.tcdp.address);
-        console.log(`Aave DAI borrow: ${fromWei(daiData[1].toString())}`);
+        log(`Aave DAI borrow: ${fromWei(daiData[1].toString())}`);
       });
   
   
