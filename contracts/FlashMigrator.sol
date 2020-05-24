@@ -741,7 +741,7 @@ contract FlashMigrator is ICallee, DydxFlashloanBase {
         external
     {
         uint256 amount = tCDP.debt();
-        amount = amount.mul(110).div(100)
+        amount = amount.mul(110).div(100);
         ISoloMargin solo = ISoloMargin(_solo);
 
         // Get marketId from token address
