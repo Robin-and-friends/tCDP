@@ -699,7 +699,15 @@ contract DydxFlashloanBase {
     }
 }
 
-
+/**
+ * @title FlashMigrator
+ * @author tCDP
+ *
+ * A tCDP migration helper which leverages flashloan from DyDx, eliminating the capital needed of
+ * caller and thus makes everyone to be able to initiate the migration of tCDP.
+ * More Info about tCDP: https://github.com/Robin-and-friends/tCDP/
+ * DyDx flashloan template reference: https://github.com/studydefi/money-legos
+ */
 contract FlashMigrator is ICallee, DydxFlashloanBase {
     struct LoanInfo {
         address token;
