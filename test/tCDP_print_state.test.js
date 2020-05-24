@@ -11,6 +11,7 @@
   const { tracker } = balance;
   const { expect } = require('chai');
   const utils = web3.utils;
+  const fetch = require('node-fetch');
   
   const addr = require('./utils/addresses');
   
@@ -30,7 +31,6 @@
     let debt = 0;
     let ethWhale = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e";
     let whaleEthValue = ether('3700000');
-    let whaleDaiValue = ether('1500000');
 
     before(async function() {
       this.dai = await ERC20.at(addr.DAI.TOKEN_ADDRESS);
@@ -46,12 +46,10 @@
         log(`tCDP address: ${this.tcdp.address}`);
       });
 
-      // const isCompound = true;
       let supplyAmt = ether('1');
       let borrowAmt = ether('80');
 
       it('checkIsCompound', async function() {
-        // await this.tcdp.setIsCompound(isCompound); 
         log(`IsCompound: ${await this.tcdp.isCompound.call()}`);
       });
   
@@ -90,13 +88,16 @@
       });
 
       it('try changing best rate of Compound', async function() {
+        let whaleDaiValue = await getCTokenGap(addr.DAI.CTOKEN_ADDRESS);
+        log(`whaleDaiValue: ${whaleDaiValue}`);
+
         await getAPRs(this.tcdp);
         log(`======================= mint cETH =======================`)
         await this.ceth.mint({value: whaleEthValue, from: ethWhale});
         await this.comptroller.enterMarkets([addr.ETH.CTOKEN_ADDRESS], {from: ethWhale});
         await getAPRs(this.tcdp);
         log(`======================= borrow DAI from Compound =======================`)
-        await this.cdai.borrow(ether('9000000'), {from: ethWhale});
+        await this.cdai.borrow(ether(whaleDaiValue.toString()), {from: ethWhale});
         await getAPRs(this.tcdp);
 
         let isCompound = await this.tcdp.findBestRate.call();
@@ -258,4 +259,16 @@ function log(msg) {
 
 function fromWei(value) {
   return web3.utils.fromWei(value);
+}
+
+async function getCTokenGap(cTokenAddr) {
+  let resp = await fetch(`https://api.compound.finance/api/v2/ctoken?addresses[]=${cTokenAddr}`);
+  let data = await resp.json();
+  let state = data.cToken[0];
+  let daiTotalLending = state.total_supply.value * state.exchange_rate.value;
+  let daiTotalBorrowing = state.total_borrows.value;
+  log(`daiTotalLending = ${daiTotalLending}`);
+  log(`daiTotalBorrowing = ${daiTotalBorrowing}`);
+  let gap = (daiTotalLending - daiTotalBorrowing) * 0.95;
+  return gap;
 }

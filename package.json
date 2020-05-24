@@ -23,6 +23,7 @@
     "@openzeppelin/test-helpers": "^0.5.5",
     "chai": "^4.2.0",
     "ganache-cli": "^6.9.1",
+    "node-fetch": "^2.6.0",
     "truffle": "^5.1.26"
   }
 }
