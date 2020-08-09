@@ -183,6 +183,7 @@ interface PriceOracle {
     function getUnderlyingPrice(address) external view returns (uint256);
 }
 
+// assume this is ETHDAI_BULL (3X)
 contract tCDP is ERC20Mintable {
     using SafeMath for *;
 
@@ -199,6 +200,8 @@ contract tCDP is ERC20Mintable {
         symbol = "tCDP";
         name = "tokenized CDP";
         decimals = 18;
+
+        // DAI.approve(clearingHouse)
         Dai.approve(address(cDai), uint256(-1));
     }
 
@@ -206,6 +209,7 @@ contract tCDP is ERC20Mintable {
         require(_totalSupply < dust, "initiated");
         require(msg.value > dust, "value too small");
 
+        // clearingHouse.openPosition(AMM_ETHUSDC, LONG, amount, 3, 0)
         cEth.mint.value(msg.value)();
 
         address[] memory cTokens = new address[](1);
@@ -219,10 +223,14 @@ contract tCDP is ERC20Mintable {
     }
 
     function collateral() public returns(uint256) {
+        // const position = clearingHouseViewer.getPersonalPositionWithFundingPayment(AMM_ETHUSDC, address(this))
+        // return position.margin
         return cEth.balanceOfUnderlying(address(this));
     }
 
     function debt() public returns(uint256) {
+        // const position = clearingHouseViewer.getPersonalPositionWithFundingPayment(AMM_ETHUSDC, address(this))
+        // return position.size (signed)
         return cDai.borrowBalanceCurrent(address(this));
     }
 
@@ -234,6 +242,7 @@ contract tCDP is ERC20Mintable {
 
         _mint(msg.sender, tokenToMint);
 
+        // clearingHouse.openPosition(AMM_ETHUSDC, LONG, amount, 3, 0)
         cEth.mint.value(amount)();
         cDai.borrow(tokenToBorrow);
         Dai.transfer(msg.sender, tokenToBorrow);
@@ -245,6 +254,10 @@ contract tCDP is ERC20Mintable {
 
         _burn(msg.sender, amount);
 
+        // const positionNotional = AMM_ETHUSDC.getOutputPrice(ADD_TO_AMM, tokenToRepay)
+        // clearingHouse.openPosition(AMM_ETHUSDC, SHORT, positionNotional, 1, 0)
+        // clearingHouse.removeMargin(AMM_ETHUSDC, tokenToDraw)
+        // USDC.transfer(msg.sender, tokenToDraw)
         Dai.transferFrom(msg.sender, address(this), tokenToRepay);
         cDai.repayBorrow(tokenToRepay);
         cEth.redeemUnderlying(tokenToDraw);
@@ -272,6 +285,7 @@ contract rebalanceCDP is tCDP {
     address etherAddr = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address ref = 0xD0533664013a82c31584B7FFDB215139f38Ad77A;
 
+    // if we're doing a 3x leveraged token, i guess the upper/lowerBound will be 33.3% +- buffer?
     uint256 public upperBound = 0.45 * 1e18; //45%
     uint256 public lowerBound = 0.35 * 1e18; //35%
     uint256 public bite = 0.025 * 1e18; //2.5%
@@ -281,6 +295,7 @@ contract rebalanceCDP is tCDP {
     }
 
     function debtRatio() public returns(uint256) {
+        // return clearingHouse.getMarginRatio(AMM_ETHUSDC, address(this))
         address oracle = comptroller.oracle();
         PriceOracle priceOracle = PriceOracle(oracle);
         uint256 price = priceOracle.getUnderlyingPrice(address(cDai));
@@ -292,6 +307,9 @@ contract rebalanceCDP is tCDP {
         require(_totalSupply >= dust, "not initiated");
         require(debtRatio() > upperBound, "debt ratio is good");
         uint256 amount = collateral().mul(bite).div(1e18);
+
+        // const positionNotional = AMM_ETHUSDC.getOutputPrice(ADD_TO_AMM, amount)
+        // clearingHouse.openPosition(AMM_ETHUSDC, SHORT, positionNotional, 1, 0)
         cEth.redeemUnderlying(amount);
         uint256 income = kyberNetwork.trade.value(amount)(etherAddr, amount, address(Dai), address(this), 1e28, 1, ref);
         cDai.repayBorrow(income);
@@ -301,6 +319,9 @@ contract rebalanceCDP is tCDP {
         require(_totalSupply >= dust, "not initiated");
         require(debtRatio() < lowerBound, "debt ratio is good");
         uint256 amount = debt().mul(bite).div(1e18);
+
+        // clearingHouse.removeMargin(AMM_ETHUSDC, amount)
+        // clearingHouse.openPosition(AMM_ETHUSDC, LONG, amount, 1, 0)
         cDai.borrow(amount);
         uint256 income = kyberNetwork.trade(address(Dai), amount, etherAddr, address(this), 1e28, 1, ref);
         cEth.mint.value(income)();
